@@ -72,7 +72,7 @@ class MyCommentsView(generics.ListAPIView):
 @permission_classes([permissions.AllowAny])
 def post_comments(request, post_id):
     """Получить комментарий к определенному посту"""
-    post = get_object_or_404(Post, id=post_id, status=' ')
+    post = get_object_or_404(Post, id=post_id, status='published')
 
     # Получаем только основные комментарии
     comments = Comment.objects.filter(
@@ -92,4 +92,22 @@ def post_comments(request, post_id):
         },
         'comments': serializer.data,
         'comments_count': post.comments.filter(is_active=True).count()
+    })
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def comment_replies(request, comment_id):
+    """Получить ответы на комментарий"""
+    parent_comment = get_object_or_404(Comment, id=comment_id, is_active=True)
+    
+    replies = Comment.objects.filter(
+        parent=parent_comment,
+        is_active=True
+    ).select_related('author').order_by('created_at')
+    
+    serializer = CommentSerializer(replies, many=True, context={'request': request})
+    return Response({
+        'parent_comment': CommentSerializer(parent_comment, context={'request': request}).data,
+        'replies': serializer.data,
+        'replies_count': replies.count()
     })

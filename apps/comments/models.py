@@ -7,8 +7,8 @@ class Comment(models.Model):
     parent = models.ForeignKey('self',on_delete=models.CASCADE,null=True,blank=True,related_name='replies')
     content = models.TextField()
     is_active = models.BooleanField(default=True)
-    create_at = models.DateTimeField(auto_now_add=True)
-    update_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
     class Meta:
@@ -19,19 +19,20 @@ class Comment(models.Model):
         indexes = [
             models.Index(fields=['post','created_at']),
             models.Index(fields=['author','-created_at']),
-            models.Index(fields=['perent','created_at']),
+            models.Index(fields=['parent','created_at']),
         ]
-
-
-        def __str__(self):
-            return f'Comment by {self.author.username} on {self.post.title}'
-        
-        @property
-        def replies_count(self):
-            return self.replies.filter(is_active=True).count()
-        
-        @property
-        def is_reply(self):
-            return self.parent is not None
-        
+    def __str__(self):
+        # Добавим проверку на self.post, чтобы не упасть, если пост удален
+        post_title = self.post.title if self.post else "Deleted Post"
+        return f'Comment by {self.author.username} on {post_title}'
+    
+    @property
+    def replies_count(self):
+        # Считаем только активные ответы
+        return self.replies.filter(is_active=True).count()
+    
+    @property
+    def is_reply(self):
+        # Если есть родитель — значит это ответ
+        return self.parent is not None
         
