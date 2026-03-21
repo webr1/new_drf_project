@@ -6,12 +6,12 @@ from .models import User
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
-        write_only=True,validate_password=[validate_password]
+        write_only=True,required=True,validators=[validate_password]
     )
     password_confirm = serializers.CharField(write_only=True)
 
     class Meta:
-        models = User
+        model = User
         fields = (
             "username","email","password","password_confirm","first_name","last_name"
         )
@@ -32,6 +32,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['password', 'email'] 
 
 
 
@@ -77,11 +81,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 
-    def get_posts_count(self,obj):
-        return obj.posts.count()
+    def get_posts_count(self, obj):
+        """Безопасное получение количества постов"""
+        try:
+            return obj.posts.count()
+        except AttributeError:
+            # Если атрибут posts не существует, возвращаем 0
+            return 0
     
-    def get_comments_count(self,obj):
-        return obj.comments.count()
+    def get_comments_count(self, obj):
+        """Безопасное получение количества комментариев"""
+        try:
+            return obj.comments.count()
+        except AttributeError:
+            # Если атрибут comments не существует, возвращаем 0
+            return 0
+
     
     
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -93,9 +108,9 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'avatar', 'bio'
         )
 
-    def upadate(self,instance,validated_data):
-        for attrs , value in validated_data.items():
-            setattr(instance,attrs,value)
+    def update(self,instance,validated_data):
+        for attr , value in validated_data.items():
+            setattr(instance,attr,value)
         instance.save()
         return instance
     
